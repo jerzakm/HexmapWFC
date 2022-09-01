@@ -18,11 +18,8 @@
 			<li class:active={$page.url.pathname === '/'}>
 				<a data-sveltekit-prefetch href="/">Home</a>
 			</li>
-			<li class:active={$page.url.pathname === '/about'}>
-				<a data-sveltekit-prefetch href="/about">About</a>
-			</li>
-			<li class:active={$page.url.pathname === '/todos'}>
-				<a data-sveltekit-prefetch href="/todos">Todos</a>
+			<li class:active={$page.url.pathname === '/wfc'}>
+				<a data-sveltekit-prefetch href="/wfc">Basic WFC</a>
 			</li>
 		</ul>
 		<svg viewBox="0 0 2 3" aria-hidden="true">
