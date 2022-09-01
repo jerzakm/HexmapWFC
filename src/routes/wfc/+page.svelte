@@ -25,10 +25,6 @@
 </div>
 
 <style>
-	canvas {
-		width: 600px;
-		height: 400px;
-	}
 	.content {
 		width: 100%;
 		max-width: var(--column-width);

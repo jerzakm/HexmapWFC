@@ -1,11 +1,12 @@
 export const initCanvasWfc = async (canvas: HTMLCanvasElement) => {
 	//
 	const { width, height } = canvas.getBoundingClientRect();
-	canvas.width = width;
-	canvas.height = height;
 
-	const gridSize = { x: 10, y: 10 };
+	const gridSize = { x: 20, y: 20 };
 	const cellSize = 30;
+
+	canvas.width = gridSize.x * cellSize;
+	canvas.height = gridSize.y * cellSize;
 
 	const grid: WfcSampleCell[][] = [];
 	const cells: WfcSampleCell[] = [];
@@ -35,8 +36,9 @@ export const initCanvasWfc = async (canvas: HTMLCanvasElement) => {
 
 	// 1. Pick random position on grid and a random tile. Collapse it.
 	collapseTile(Math.floor(Math.random() * gridSize.x), Math.floor(Math.random() * gridSize.y));
+	collapseStep();
 
-	for (let z = 0; z < 1000; z++) {
+	function collapseStep() {
 		cells.sort((a, b) => {
 			return a.options.length - b.options.length;
 		});
@@ -46,6 +48,17 @@ export const initCanvasWfc = async (canvas: HTMLCanvasElement) => {
 				collapseTile(cells[i].x, cells[i].y);
 				break;
 			}
+		}
+
+		const uncollapsed = cells.find((c) => {
+			return !c.collapsed;
+		});
+
+		if (uncollapsed) {
+			setTimeout(collapseStep, 5);
+			console.count('collapsing');
+		} else {
+			console.log('no more uncollapsed tiles');
 		}
 	}
 
