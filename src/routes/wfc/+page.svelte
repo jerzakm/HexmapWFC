@@ -5,7 +5,9 @@
 	let canvas: HTMLCanvasElement | undefined;
 
 	onMount(() => {
-		if (canvas) initCanvasWfc(canvas);
+		if (canvas) {
+			initCanvasWfc(canvas);
+		}
 	});
 </script>
 
@@ -18,20 +20,15 @@
 	<h1>WFC example</h1>
 
 	<p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Molestiae, similique.</p>
-</div>
 
-<canvas bind:this={canvas} />
+	<canvas bind:this={canvas} />
+</div>
 
 <style>
 	canvas {
-		width: 100vw;
-		height: 100vh;
-		position: fixed;
-		top: 0;
-		left: 0;
-		z-index: -999;
+		width: 600px;
+		height: 400px;
 	}
-
 	.content {
 		width: 100%;
 		max-width: var(--column-width);
