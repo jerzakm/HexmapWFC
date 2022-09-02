@@ -5,6 +5,7 @@ export const initThreeRenderer = (canvas: HTMLCanvasElement) => {
 		alpha: true,
 		canvas
 	});
+	renderer.setPixelRatio(window.devicePixelRatio);
 	renderer.setSize(window.innerWidth, window.innerHeight);
 
 	return { renderer };
