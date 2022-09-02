@@ -3,7 +3,7 @@
 	import { initHexmap } from './_hexmap';
 	let canvas: HTMLCanvasElement | undefined;
 
-	onMount(() => {
+	onMount(async () => {
 		initHexmap();
 	});
 </script>

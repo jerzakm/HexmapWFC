@@ -9,6 +9,8 @@ export const initHexmap = () => {
 	const map = new PIXI.Container();
 	app.stage.addChild(map);
 
+	cameraSetup(app, map);
+
 	const hex = 'hexTileSets/ZeshiosPixelHexTileset1.1/PixelHex_zeshio_tile-001.png';
 	const texture = PIXI.Texture.from(hex);
 
@@ -36,15 +38,17 @@ export const initHexmap = () => {
 		tile.x = point.x;
 		tile.y = point.y - 12;
 		map.addChild(tile);
-		map.addChild(graphics);
+		// map.addChild(graphics);
 	});
+};
 
+const cameraSetup = (app: PIXI.Application, map: PIXI.Container) => {
 	addEventListener('wheel', (event) => {
 		app.stage.scale.x += event.deltaY * -0.001;
 		app.stage.scale.y += event.deltaY * -0.001;
 
-		app.stage.scale.x = Math.max(app.stage.scale.x, 0.25);
-		app.stage.scale.y = Math.max(app.stage.scale.y, 0.25);
+		app.stage.scale.x = Math.max(app.stage.scale.x, 0.1);
+		app.stage.scale.y = Math.max(app.stage.scale.y, 0.1);
 	});
 
 	let cameraMove = false;
