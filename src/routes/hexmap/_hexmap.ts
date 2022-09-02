@@ -3,7 +3,7 @@ import * as PIXI from 'pixi.js';
 
 import * as Honeycomb from 'honeycomb-grid';
 
-export const initHexmap = (canvas: HTMLCanvasElement) => {
+export const initHexmap = () => {
 	const { app } = initPixiApp();
 
 	const map = new PIXI.Container();
@@ -32,11 +32,34 @@ export const initHexmap = (canvas: HTMLCanvasElement) => {
 		// finish at the first corner
 		graphics.lineTo(firstCorner.x, firstCorner.y);
 
-		app.stage.addChild(graphics);
-
 		const tile = new PIXI.Sprite(texture);
 		tile.x = point.x;
 		tile.y = point.y - 12;
 		map.addChild(tile);
+		map.addChild(graphics);
+	});
+
+	addEventListener('wheel', (event) => {
+		app.stage.scale.x += event.deltaY * -0.001;
+		app.stage.scale.y += event.deltaY * -0.001;
+
+		app.stage.scale.x = Math.max(app.stage.scale.x, 0.25);
+		app.stage.scale.y = Math.max(app.stage.scale.y, 0.25);
+	});
+
+	let cameraMove = false;
+
+	addEventListener('pointerdown', (event) => {
+		cameraMove = true;
+	});
+
+	addEventListener('pointerup', (event) => {
+		cameraMove = false;
+	});
+	addEventListener('pointermove', (event) => {
+		if (cameraMove) {
+			map.x += event.movementX / app.stage.scale.x;
+			map.y += event.movementY / app.stage.scale.x;
+		}
 	});
 };

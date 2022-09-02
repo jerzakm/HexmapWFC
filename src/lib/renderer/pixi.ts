@@ -13,7 +13,6 @@ export const initPixiApp = () => {
 	app.view.style.position = 'fixed';
 	app.view.style.top = '0';
 	app.view.style.left = '0';
-	app.view.style.zIndex = '-500';
 
 	window.addEventListener('resize', () => {
 		//
