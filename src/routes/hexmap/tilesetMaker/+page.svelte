@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	import * as PIXI from 'pixi.js';
 	import * as Honeycomb from 'honeycomb-grid';
 
 	import type { WfcHexTile, WfcTileSet } from '$lib/hexmap/tileset';
+	import { loadImage } from '$lib/renderer/canvas';
 
 	let tileSet: WfcTileSet = {
 		name: '',
@@ -13,7 +13,7 @@
 	};
 	let rawTiles: any;
 
-	let canvasContainer: HTMLDivElement;
+	let canvas: HTMLCanvasElement;
 
 	let pickTile: any;
 
@@ -22,51 +22,50 @@
 		const data = await res.json();
 		tileSet = data;
 
-		const app = new PIXI.Application({ transparent: true });
-		const graphics = new PIXI.Graphics();
+		const ctx = canvas.getContext('2d');
 
-		canvasContainer.appendChild(app.view);
+		const hexSize = 48;
+		const padding = 6;
 
-		const Hex = Honeycomb.extendHex({ size: 48, orientation: 'flat' });
+		const Hex = Honeycomb.extendHex({ size: hexSize + padding, orientation: 'flat' });
 		const Grid = Honeycomb.defineGrid(Hex);
-		graphics.lineStyle(2, 0x999999);
-
-		app.stage.scale.x = 2;
-		app.stage.scale.y = 2;
-
-		let sprite: PIXI.Sprite | undefined;
-
-		Grid.hexagon({ radius: 1, center: Hex(1, 1) }).forEach((hex) => {
-			const point = hex.toPoint();
-			// add the hex's position to each of its corner points
-			const corners = hex.corners().map((corner) => corner.add(point));
-			// separate the first from the other corners
-			const [firstCorner, ...otherCorners] = corners;
-
-			// move the "pen" to the first corner
-			graphics.moveTo(firstCorner.x, firstCorner.y);
-			// draw lines to the other corners
-			otherCorners.forEach(({ x, y }) => graphics.lineTo(x, y));
-			// finish at the first corner
-			graphics.lineTo(firstCorner.x, firstCorner.y);
-
-			app.stage.addChild(graphics);
-		});
-
-		sprite;
 
 		const centerHex = Hex(1, 1);
 
-		pickTile = (tile: WfcHexTile) => {
-			if (sprite) app.stage.removeChild(sprite);
-			const texture = PIXI.Texture.from(tile.path);
-			sprite = new PIXI.Sprite(texture);
+		drawHexgrid();
 
-			const point = centerHex.toPoint();
-			sprite.x = point.x;
-			sprite.y = point.y - 12;
-			app.stage.addChild(sprite);
+		pickTile = async (tile: WfcHexTile) => {
+			const { x, y } = centerHex.toPoint();
+			const image = await loadImage(tile.path);
+			ctx?.drawImage(image, x + padding, y - 12 + padding);
 		};
+
+		function drawHexgrid() {
+			Grid.hexagon({ radius: 1, center: Hex(1, 1) }).forEach((hex) => {
+				const point = hex.toPoint();
+				// add the hex's position to each of its corner points
+				const corners = hex.corners().map((corner) => corner.add(point));
+				// separate the first from the other corners
+				const [firstCorner, ...otherCorners] = corners;
+
+				if (!ctx) return;
+
+				ctx.beginPath();
+				ctx.lineWidth = 2;
+				ctx.strokeStyle = 'red';
+
+				// move the "pen" to the first corner
+				ctx.moveTo(firstCorner.x, firstCorner.y);
+
+				// draw lines to the other corners
+				otherCorners.forEach(({ x, y }) => ctx.lineTo(x, y));
+				// finish at the first corner
+				ctx.lineTo(firstCorner.x, firstCorner.y);
+				ctx?.stroke();
+			});
+		}
+
+		pickTile(tileSet.tiles[0]);
 	});
 
 	function drawTile(tile: WfcHexTile) {
@@ -86,9 +85,7 @@
 			{/if}
 		{/each}
 	</tiles>
-	<div id="pixi-canvas-container" bind:this={canvasContainer}>
-		<!-- pixi container here -->
-	</div>
+	<canvas bind:this={canvas} width="500" height="500" />
 	<tiles class="tiles-done">
 		{#each tileSet.tiles as tile}
 			{#if tile.sideTags}
@@ -106,5 +103,6 @@
 
 	editor {
 		display: flex;
+		align-items: flex-start;
 	}
 </style>
