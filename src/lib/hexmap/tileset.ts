@@ -13,7 +13,7 @@ export interface WfcHexTile {
 
 export interface WfcTileTag {
 	name: string;
-	color: number;
+	color: number[];
 }
 
 export interface WfcTileSet {

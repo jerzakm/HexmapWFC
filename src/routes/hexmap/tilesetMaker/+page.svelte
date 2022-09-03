@@ -22,7 +22,7 @@
 
 	let newTag = {
 		name: '',
-		color: `0x000000`
+		color: [0, 0, 0]
 	};
 	let pickingColor = false;
 
@@ -81,24 +81,45 @@
 		pickTile(tileSet.tiles[0]);
 
 		canvas.addEventListener('mousemove', (e) => {
-			const x = e.offsetX;
-			const y = e.offsetY;
+			if (pickingColor) {
+				const x = e.offsetX;
+				const y = e.offsetY;
 
-			if (!imgData) return;
-			let index = (y * imgData.width + x) * 4;
+				if (!imgData) return;
+				let index = (y * imgData.width + x) * 4;
 
-			let red = imgData.data[index];
-			let green = imgData.data[index + 1];
-			let blue = imgData.data[index + 2];
-			let alpha = imgData.data[index + 3];
+				let red = imgData.data[index];
+				let green = imgData.data[index + 1];
+				let blue = imgData.data[index + 2];
+				let alpha = imgData.data[index + 3];
 
-			previewColor = [red, green, blue];
+				previewColor = [red, green, blue];
+			}
+		});
+		canvas.addEventListener('click', () => {
+			if (pickingColor) {
+				pickingColor = false;
+				newTag.color = previewColor;
+			}
 		});
 	});
+
+	function addNewTileTag() {
+		tileSet.tags.push(newTag);
+		tileSet = tileSet;
+		saveTileSet();
+	}
+
+	async function saveTileSet() {
+		await fetch('/api/tileset', {
+			method: 'POST',
+			body: JSON.stringify(tileSet)
+		});
+	}
 </script>
 
 <h1>{tileSet.name}</h1>
-<tags class="flex">
+<div class="flex gap-6">
 	<div class="flex  bg-slate-200 p-4 rounded-lg gap-2 ">
 		<div class="flex flex-col gap-1">
 			<span class="font-bold">Add a new tag</span>
@@ -119,16 +140,24 @@
 				style={`background-color: rgb(${previewColor[0]},${previewColor[1]},${previewColor[2]});`}
 			/>
 		</div>
-		<button class="mt-4 bg-white font-bold border-slate-800 border w-16">Add</button>
+		<button
+			class="mt-4 bg-white font-bold border-slate-800 border w-16"
+			on:click={() => {
+				addNewTileTag();
+			}}>Add</button
+		>
 	</div>
-	<li>
+	<tags class="flex gap-2">
 		{#each tileSet.tags as tag}
-			<ul>{tag.name}</ul>
+			<tag class="px-4 py-2 bg-slate-200">
+				<span>{tag.name}</span>
+				<div class="w-16 h-16 bg-red-100" />
+			</tag>
 		{/each}
-	</li>
-</tags>
+	</tags>
+</div>
 <editor>
-	<tiles class="tiles-todo">
+	<tiles>
 		{#each tileSet.tiles as tile}
 			{#if !tile.sideTags}
 				<button on:click={pickTile(tile)}>
@@ -143,7 +172,7 @@
 			>{/if}
 		<canvas bind:this={canvas} width="800" height="800" />
 	</div>
-	<tiles class="tiles-done">
+	<tiles>
 		{#each tileSet.tiles as tile}
 			{#if tile.sideTags}
 				<img src={tile.path} />

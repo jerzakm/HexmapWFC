@@ -1,27 +1,28 @@
 import type { WfcHexTile, WfcTileSet } from '$lib/hexmap/tileset';
+import type { RequestEvent } from '@sveltejs/kit';
+import { readFileSync, writeFileSync } from 'fs';
 import { readdirSync } from 'fs';
 
+const SET_NAME = 'ZeshiosPixelHexTileset1.1';
+const SET_PATH = `static/hexTileSets/${SET_NAME}.json`;
+
 export function GET() {
-	const random = Math.random();
-
-	const setDirs = readdirSync('static/hexTileSets');
-
-	const set = 'ZeshiosPixelHexTileset1.1';
-
 	try {
-		readFileSync(`static/hexTileSets/${set}.json`);
+		const tileset = readFileSync(SET_PATH);
+		return new Response(tileset);
 	} catch (e) {
 		console.log('tileSet json config not found, loading raw files...');
 
-		const setTilePaths = readdirSync(`static/hexTileSets/${set}`);
+		const setTilePaths = readdirSync(`static/hexTileSets/${SET_NAME}`);
 		const tiles: WfcHexTile[] = [];
 
 		setTilePaths.map((tile) => {
-			if (tile.includes('png')) tiles.push({ name: tile, path: `/hexTileSets/${set}/${tile}` });
+			if (tile.includes('png'))
+				tiles.push({ name: tile, path: `/hexTileSets/${SET_NAME}/${tile}` });
 		});
 
 		const tileset: WfcTileSet = {
-			name: set,
+			name: SET_NAME,
 			tiles,
 			tags: []
 		};
@@ -30,9 +31,10 @@ export function GET() {
 	}
 }
 
-export async function POST({ request }: any) {
-	return {};
-}
-function readFileSync(arg0: string) {
-	throw new Error('Function not implemented.');
+export async function POST({ request }: RequestEvent) {
+	const tileset = await request.json();
+
+	writeFileSync(SET_PATH, JSON.stringify(tileset));
+
+	return { tileset };
 }
