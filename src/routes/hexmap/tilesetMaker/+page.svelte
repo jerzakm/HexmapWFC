@@ -46,8 +46,13 @@
 
 		pickTile = async (tile: WfcHexTile) => {
 			ctx?.clearRect(0, 0, canvas.width, canvas.height);
+
+			const center = Hex(1, 1);
 			// draw grid
-			Grid.hexagon({ radius: 1, center: Hex(1, 1) }).forEach((hex) => {
+			const grid = Grid.hexagon({ radius: 1, center });
+
+			for (let i = 0; i < grid.neighborsOf(center).length; i++) {
+				const hex = grid.neighborsOf(center)[i];
 				const point = hex.toPoint();
 				// add the hex's position to each of its corner points
 				const corners = hex.corners().map((corner) => corner.add(point));
@@ -68,7 +73,10 @@
 				// finish at the first corner
 				ctx.lineTo(firstCorner.x, firstCorner.y);
 				ctx?.stroke();
-			});
+
+				ctx.font = '20px Arial';
+				ctx.fillText(`${i}`, (corners[0].x + corners[3].x) / 2, (corners[0].y + corners[3].y) / 2);
+			}
 
 			// draw tile on top of the grid
 
@@ -148,15 +156,15 @@
 		>
 	</div>
 	<tags class="flex gap-2">
-		{#each tileSet.tags as tag}
-			<tag class="px-4 py-2 bg-slate-200">
-				<span>{tag.name}</span>
-				<div class="w-16 h-16 bg-red-100" />
+		{#each tileSet.tags as tag, i}
+			<tag class="px-4 py-2">
+				<span><b>[{i + 1}]</b> {tag.name}</span>
+				<div class="w-16 h-16 " style={`background-color: rgb(${tag.color})`} />
 			</tag>
 		{/each}
 	</tags>
 </div>
-<editor>
+<editor class="flex items-start gap-4">
 	<tiles>
 		{#each tileSet.tiles as tile}
 			{#if !tile.sideTags}
@@ -185,12 +193,6 @@
 	tiles {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
-	}
-
-	editor {
-		display: flex;
-		align-items: flex-start;
-		gap: 1rem;
 	}
 
 	.canvas-container {
