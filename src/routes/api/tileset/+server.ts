@@ -1,4 +1,4 @@
-import type { WfcHexTile, WfcTileSet } from '$lib/hexmap/tileset';
+import type { HexTile, WfcTileSet } from '$lib/hexmap/tileset';
 import type { RequestEvent } from '@sveltejs/kit';
 import { readFileSync, writeFileSync } from 'fs';
 import { readdirSync } from 'fs';
@@ -14,7 +14,7 @@ export function GET() {
 		console.log('tileSet json config not found, loading raw files...');
 
 		const setTilePaths = readdirSync(`static/hexTileSets/${SET_NAME}`);
-		const tiles: WfcHexTile[] = [];
+		const tiles: HexTile[] = [];
 
 		setTilePaths.map((tile) => {
 			if (tile.includes('png'))

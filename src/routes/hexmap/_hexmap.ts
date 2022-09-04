@@ -2,6 +2,7 @@ import { initPixiApp } from '$lib/renderer/pixi';
 import * as PIXI from 'pixi.js';
 
 import * as Honeycomb from 'honeycomb-grid';
+import { fetchTileset, type HexTile } from '$lib/hexmap/tileset';
 
 export const initHexmap = () => {
 	const { app } = initPixiApp();
@@ -15,31 +16,31 @@ export const initHexmap = () => {
 	const texture = PIXI.Texture.from(hex);
 
 	const graphics = new PIXI.Graphics();
-	graphics.lineStyle(1, 0x999999);
+	graphics.lineStyle(2, 0xffffff);
 
 	const Hex = Honeycomb.extendHex({ size: 48, orientation: 'flat' });
 	const Grid = Honeycomb.defineGrid(Hex);
 
-	Grid.rectangle({ width: 100, height: 100 }).forEach((hex) => {
+	// draw hex grid - border outlines
+	const hexGrid = Grid.rectangle({ width: 10, height: 10 });
+
+	hexGrid.map((hex) => {
 		const point = hex.toPoint();
-		// add the hex's position to each of its corner points
 		const corners = hex.corners().map((corner) => corner.add(point));
-		// separate the first from the other corners
 		const [firstCorner, ...otherCorners] = corners;
 
-		// move the "pen" to the first corner
 		graphics.moveTo(firstCorner.x, firstCorner.y);
-		// draw lines to the other corners
 		otherCorners.forEach(({ x, y }) => graphics.lineTo(x, y));
-		// finish at the first corner
 		graphics.lineTo(firstCorner.x, firstCorner.y);
-
-		const tile = new PIXI.Sprite(texture);
-		tile.x = point.x;
-		tile.y = point.y - 12;
-		map.addChild(tile);
-		// map.addChild(graphics);
+		map.addChild(graphics);
 	});
+
+	// WFC starts here
+	wfc(hexGrid, map);
+
+	// center the map
+	map.x = app.renderer.width / 2 - map.width / 2;
+	map.y = app.renderer.height / 2 - map.height / 2;
 };
 
 const cameraSetup = (app: PIXI.Application, map: PIXI.Container) => {
@@ -67,3 +68,39 @@ const cameraSetup = (app: PIXI.Application, map: PIXI.Container) => {
 		}
 	});
 };
+
+const wfc = async (
+	hexGrid: Honeycomb.Grid<
+		Honeycomb.Hex<{
+			size: number;
+			orientation: 'flat';
+		}>
+	>,
+	map: PIXI.Container
+) => {
+	const wfcHexTiles: WfcHexTile[] = [];
+
+	// 1. Load tileset
+
+	const tileSet = await fetchTileset();
+	console.log(tileSet);
+
+	for (const hex of hexGrid) {
+		wfcHexTiles.push({
+			hex,
+			collapsed: false,
+			tile: undefined,
+			options: []
+		});
+	}
+};
+
+interface WfcHexTile {
+	hex: Honeycomb.Hex<{
+		size: number;
+		orientation: 'flat';
+	}>;
+	collapsed: boolean;
+	tile?: HexTile;
+	options: HexTile[];
+}
