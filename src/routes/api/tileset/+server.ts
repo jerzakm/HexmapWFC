@@ -34,6 +34,8 @@ export function GET() {
 export async function POST({ request }: RequestEvent) {
 	const tileset = await request.json();
 
+	console.log('saving tileset');
+
 	writeFileSync(SET_PATH, JSON.stringify(tileset, null, 4));
 
 	return { tileset };

@@ -1,30 +1,32 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-
-	import * as PIXI from 'pixi.js';
-
 	import * as Honeycomb from 'honeycomb-grid';
 
 	import type { WfcHexTile, WfcTileSet } from '$lib/hexmap/tileset';
 	import { loadImage } from '$lib/renderer/canvas';
+	import { debounce } from '$lib/util/debounce';
 
 	let tileSet: WfcTileSet = {
 		name: '',
 		tags: [],
 		tiles: []
 	};
-	let rawTiles: any;
+
+	let activeTile: WfcHexTile | undefined;
 
 	let canvas: HTMLCanvasElement;
 	let previewColor = [0, 0, 0];
 
 	let pickTile: any;
 
+	let activeTag: undefined | number;
+
 	let newTag = {
 		name: '',
 		color: [0, 0, 0]
 	};
 	let pickingColor = false;
+	let hoveringTile: undefined | number;
 
 	onMount(async () => {
 		const res = await fetch('/api/tileset');
@@ -44,15 +46,29 @@
 
 		let imgData: ImageData | undefined;
 
-		pickTile = async (tile: WfcHexTile) => {
-			ctx?.clearRect(0, 0, canvas.width, canvas.height);
+		let neighborIndex: any[] = new Array(6);
 
+		let grid: Honeycomb.Grid<
+			Honeycomb.Hex<{
+				size: number;
+				orientation: 'flat';
+			}>
+		>;
+
+		pickTile = async (tile: WfcHexTile) => {
+			activeTile = tile;
+
+			if (!ctx) return;
+			ctx.clearRect(0, 0, canvas.width, canvas.height);
 			const center = Hex(1, 1);
 			// draw grid
-			const grid = Grid.hexagon({ radius: 1, center });
+			grid = Grid.hexagon({ radius: 1, center });
 
 			for (let i = 0; i < grid.neighborsOf(center).length; i++) {
 				const hex = grid.neighborsOf(center)[i];
+
+				neighborIndex[i] = `${hex.x}${hex.y}`;
+
 				const point = hex.toPoint();
 				// add the hex's position to each of its corner points
 				const corners = hex.corners().map((corner) => corner.add(point));
@@ -65,6 +81,10 @@
 				ctx.lineWidth = 2;
 				ctx.strokeStyle = 'red';
 
+				if (hoveringTile == i) {
+					ctx.strokeStyle = 'orange';
+				}
+
 				// move the "pen" to the first corner
 				ctx.moveTo(firstCorner.x, firstCorner.y);
 
@@ -72,8 +92,23 @@
 				otherCorners.forEach(({ x, y }) => ctx.lineTo(x, y));
 				// finish at the first corner
 				ctx.lineTo(firstCorner.x, firstCorner.y);
-				ctx?.stroke();
 
+				if (tile.sideTags && tile.sideTags[i]) {
+					const tagName = tile.sideTags[i];
+					const tag = tileSet.tags.find((t) => {
+						return t.name == tagName;
+					});
+					if (tag) {
+						ctx.fillStyle = `rgb(${tag.color[0]},${tag.color[1]},${tag.color[2]})`;
+						console.log(tag);
+						ctx.fill();
+						ctx.fillStyle = '#FFFFFF';
+						ctx.fillText(`${tagName}`, corners[3].x + 40, (corners[0].y + corners[3].y - 50) / 2);
+					}
+				}
+
+				ctx.stroke();
+				ctx.fillStyle = '#FFFFFF';
 				ctx.font = '20px Arial';
 				ctx.fillText(`${i}`, (corners[0].x + corners[3].x) / 2, (corners[0].y + corners[3].y) / 2);
 			}
@@ -88,10 +123,10 @@
 		};
 		pickTile(tileSet.tiles[0]);
 
-		canvas.addEventListener('mousemove', (e) => {
+		canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
 			if (pickingColor) {
-				const x = e.offsetX;
-				const y = e.offsetY;
+				const x = offsetX;
+				const y = offsetY;
 
 				if (!imgData) return;
 				let index = (y * imgData.width + x) * 4;
@@ -103,11 +138,45 @@
 
 				previewColor = [red, green, blue];
 			}
+			const hexCoordinates = Grid.pointToHex(offsetX, offsetY);
+			const hex = grid.get(hexCoordinates);
+			const index = neighborIndex.indexOf(`${hex?.x}${hex?.y}`);
+			if (index >= 0) {
+				hoveringTile = index;
+			} else {
+				hoveringTile = undefined;
+			}
 		});
 		canvas.addEventListener('click', () => {
 			if (pickingColor) {
 				pickingColor = false;
 				newTag.color = previewColor;
+			}
+		});
+
+		window.addEventListener('keydown', async ({ key }) => {
+			const tagKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
+			const tagIndex = tagKeys.indexOf(`${key}`);
+
+			if (tagIndex >= 0) {
+				if (tagIndex < tileSet.tags.length) activeTag = tagIndex;
+				console.log(activeTag);
+			}
+
+			const hexKeys = ['d', 's', 'a', 'q', 'w', 'e'];
+			const hexIndex = hexKeys.indexOf(`${key}`);
+
+			if (hexIndex > -1 && typeof activeTag == 'number') {
+				//
+				console.log(hexIndex, tileSet.tags[activeTag].name);
+				console.log(activeTile);
+				if (!activeTile) return;
+				if (!activeTile?.sideTags) {
+					activeTile.sideTags = [undefined, undefined, undefined, undefined, undefined, undefined];
+				}
+				activeTile.sideTags[hexIndex] = tileSet.tags[activeTag].name;
+				await saveTileSet();
+				pickTile(activeTile);
 			}
 		});
 	});
@@ -157,7 +226,7 @@
 	</div>
 	<tags class="flex gap-2">
 		{#each tileSet.tags as tag, i}
-			<tag class="px-4 py-2">
+			<tag class={`px-4 py-2 bg-slate-200 rounded-lg ${i == activeTag ? 'bg-orange-100' : ''}`}>
 				<span><b>[{i + 1}]</b> {tag.name}</span>
 				<div class="w-16 h-16 " style={`background-color: rgb(${tag.color})`} />
 			</tag>
@@ -183,7 +252,9 @@
 	<tiles>
 		{#each tileSet.tiles as tile}
 			{#if tile.sideTags}
-				<img src={tile.path} />
+				<button on:click={pickTile(tile)}>
+					<img src={tile.path} />
+				</button>
 			{/if}
 		{/each}
 	</tiles>

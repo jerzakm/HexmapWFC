@@ -1,14 +1,14 @@
 export interface WfcHexTile {
 	name: string;
 	path: string;
-	sideTags?: {
-		0: string;
-		1: string;
-		2: string;
-		3: string;
-		4: string;
-		5: string;
-	};
+	sideTags?: [
+		string | undefined,
+		string | undefined,
+		string | undefined,
+		string | undefined,
+		string | undefined,
+		string | undefined
+	];
 }
 
 export interface WfcTileTag {
