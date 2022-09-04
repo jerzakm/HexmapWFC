@@ -4,7 +4,6 @@
 
 	import { fetchTileset, type HexTile, type WfcTileSet } from '$lib/hexmap/tileset';
 	import { loadImage } from '$lib/renderer/canvas';
-	import { debounce } from '$lib/util/debounce';
 
 	let tileSet: WfcTileSet = {
 		name: '',
@@ -119,7 +118,17 @@
 
 			imgData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
 		};
-		pickTile(tileSet.tiles[0]);
+
+		pickUntaggedTile();
+
+		function pickUntaggedTile() {
+			for (const tile of tileSet.tiles) {
+				if (!tile.sideTags) {
+					pickTile(tile);
+					break;
+				}
+			}
+		}
 
 		canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
 			if (pickingColor) {
@@ -152,7 +161,8 @@
 			}
 		});
 
-		window.addEventListener('keydown', async ({ key }) => {
+		window.addEventListener('keydown', async (e) => {
+			const { key } = e;
 			const tagKeys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 			const tagIndex = tagKeys.indexOf(`${key}`);
 
@@ -224,7 +234,10 @@
 	</div>
 	<tags class="flex gap-2">
 		{#each tileSet.tags as tag, i}
-			<tag class={`px-4 py-2 bg-slate-200 rounded-lg ${i == activeTag ? 'bg-orange-100' : ''}`}>
+			<tag
+				class={`px-4 py-2 bg-slate-200 rounded-lg ${i == activeTag ? 'bg-orange-100' : ''}`}
+				on:click={() => (activeTag = i)}
+			>
 				<span><b>[{i + 1}]</b> {tag.name}</span>
 				<div class="w-16 h-16 " style={`background-color: rgb(${tag.color})`} />
 			</tag>
@@ -233,7 +246,7 @@
 </div>
 <editor class="flex items-start gap-4">
 	<tiles>
-		{#each tileSet.tiles as tile}
+		{#each tileSet.tiles.reverse() as tile}
 			{#if !tile.sideTags}
 				<button on:click={pickTile(tile)}>
 					<img src={tile.path} />
