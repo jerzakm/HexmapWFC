@@ -1,4 +1,4 @@
-export interface WfcHexTile {
+export interface HexTile {
 	name: string;
 	path: string;
 	sideTags?: [
@@ -11,13 +11,19 @@ export interface WfcHexTile {
 	];
 }
 
-export interface WfcTileTag {
+export interface TileBorderTag {
 	name: string;
 	color: number[];
 }
 
 export interface WfcTileSet {
 	name: string;
-	tiles: WfcHexTile[];
-	tags: WfcTileTag[];
+	tiles: HexTile[];
+	tags: TileBorderTag[];
 }
+
+export const fetchTileset = async () => {
+	const rawJsonData = await fetch('/api/tileset');
+	const tileSet: WfcTileSet = await rawJsonData.json();
+	return tileSet;
+};

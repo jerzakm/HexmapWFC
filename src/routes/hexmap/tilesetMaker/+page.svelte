@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import * as Honeycomb from 'honeycomb-grid';
 
-	import type { WfcHexTile, WfcTileSet } from '$lib/hexmap/tileset';
+	import { fetchTileset, type HexTile, type WfcTileSet } from '$lib/hexmap/tileset';
 	import { loadImage } from '$lib/renderer/canvas';
 	import { debounce } from '$lib/util/debounce';
 
@@ -12,7 +12,7 @@
 		tiles: []
 	};
 
-	let activeTile: WfcHexTile | undefined;
+	let activeTile: HexTile | undefined;
 
 	let canvas: HTMLCanvasElement;
 	let previewColor = [0, 0, 0];
@@ -29,9 +29,7 @@
 	let hoveringTile: undefined | number;
 
 	onMount(async () => {
-		const res = await fetch('/api/tileset');
-		const data = await res.json();
-		tileSet = data;
+		tileSet = await fetchTileset();
 
 		const ctx = canvas.getContext('2d');
 		if (ctx) ctx.imageSmoothingEnabled = false;
@@ -55,7 +53,7 @@
 			}>
 		>;
 
-		pickTile = async (tile: WfcHexTile) => {
+		pickTile = async (tile: HexTile) => {
 			activeTile = tile;
 
 			if (!ctx) return;
