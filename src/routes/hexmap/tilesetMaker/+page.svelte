@@ -27,6 +27,32 @@
 	let pickingColor = false;
 	let hoveringTile: undefined | number;
 
+	const samplePoints = [
+		{
+			x: 322,
+			y: 318.6973485926734
+		},
+		{
+			x: 276,
+			y: 398.3716857408417
+		},
+		{
+			x: 184,
+			y: 398.3716857408417
+		},
+		{
+			x: 138,
+			y: 318.6973485926734
+		},
+		{
+			x: 184,
+			y: 239.02301144450504
+		},
+		{
+			x: 276,
+			y: 239.02301144450504
+		}
+	];
 	onMount(async () => {
 		tileSet = await fetchTileset();
 
@@ -60,6 +86,17 @@
 			const center = Hex(1, 1);
 			// draw grid
 			grid = Grid.hexagon({ radius: 1, center });
+
+			const point = center.toPoint();
+			// add the hex's position to each of its corner points
+			const corners = center.corners().map((corner) => corner.add(point));
+
+			for (let i = 0; i < 6; i++) {
+				const start = corners[i];
+				const end = corners[(i + 1) % 6];
+				samplePoints[i].x = Math.floor((start.x + end.x) / 2);
+				samplePoints[i].y = Math.floor((start.y + end.y) / 2);
+			}
 
 			for (let i = 0; i < grid.neighborsOf(center).length; i++) {
 				const hex = grid.neighborsOf(center)[i];
@@ -117,6 +154,41 @@
 			ctx?.drawImage(image, x + padding, y - 24 + padding, image.width * 2, image.height * 2);
 
 			imgData = ctx?.getImageData(0, 0, canvas.width, canvas.height);
+
+			for (let i = 0; i < samplePoints.length; i++) {
+				const { x, y } = samplePoints[i];
+
+				console.log(x, y);
+
+				let index = (y * imgData.width + x) * 4;
+				let red = imgData.data[index];
+				let green = imgData.data[index + 1];
+				let blue = imgData.data[index + 2];
+				const sampledColor = [red, green, blue];
+
+				const match = tileSet.tags.find((tag) => {
+					return JSON.stringify(tag.color) == JSON.stringify(sampledColor);
+				});
+
+				if (match && (!activeTile.sideTags || !activeTile.sideTags[i])) {
+					if (!activeTile.sideTags)
+						activeTile.sideTags = [
+							undefined,
+							undefined,
+							undefined,
+							undefined,
+							undefined,
+							undefined
+						];
+					activeTile.sideTags[i] = match.name;
+					pickTile(activeTile);
+				}
+
+				ctx.fillStyle = '#FFFF00';
+				ctx.beginPath();
+				ctx.rect(x, y, 2, 2);
+				ctx.fill();
+			}
 		};
 
 		pickUntaggedTile();
