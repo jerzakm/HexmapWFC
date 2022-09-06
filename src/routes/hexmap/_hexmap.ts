@@ -4,30 +4,32 @@ import * as PIXI from 'pixi.js';
 import * as Honeycomb from 'honeycomb-grid';
 import { fetchTileset, type HexTile } from '$lib/hexmap/tileset';
 
-export const initHexmap = () => {
+const RENDER_IN_STEPS = true;
+const STEP_TIME_MS = 1;
+
+export const initHexmap = async () => {
 	const { app } = initPixiApp();
 
 	const map = new PIXI.Container();
 	app.stage.addChild(map);
 
-	app.stage.scale.x = 0.7;
-	app.stage.scale.y = 0.7;
+	app.stage.scale.x = 0.75;
+	app.stage.scale.y = 0.75;
 
 	cameraSetup(app, map);
 
-	const gridSize: [number, number] = [30, 10];
-
-	const hex = 'hexTileSets/ZeshiosPixelHexTileset1.1/PixelHex_zeshio_tile-001.png';
-	const texture = PIXI.Texture.from(hex);
+	const gridSize: [number, number] = [40, 20];
 
 	const graphics = new PIXI.Graphics();
-	graphics.lineStyle(2, 0xffffff);
+	graphics.lineStyle(2, 0x000000);
 
 	const Hex = Honeycomb.extendHex({ size: 48, orientation: 'flat' });
 	const Grid = Honeycomb.defineGrid(Hex);
 
 	// draw hex grid - border outlines
 	const hexGrid = Grid.rectangle({ width: gridSize[0], height: gridSize[1] });
+
+	const grid = new PIXI.Container();
 
 	hexGrid.map((hex) => {
 		const point = hex.toPoint();
@@ -37,15 +39,19 @@ export const initHexmap = () => {
 		graphics.moveTo(firstCorner.x, firstCorner.y);
 		otherCorners.forEach(({ x, y }) => graphics.lineTo(x, y));
 		graphics.lineTo(firstCorner.x, firstCorner.y);
-		map.addChild(graphics);
+		grid.addChild(graphics);
 	});
 
 	// WFC starts here
-	wfc(gridSize, map);
+	await wfc(gridSize, map);
+
+	grid.zIndex = 100;
+
+	app.stage.addChild(grid);
 
 	// center the map
-	map.x = app.renderer.width / 2 - map.width / 2;
-	map.y = app.renderer.height / 2 - map.height / 2;
+	// map.x = app.renderer.width / 2 - (map.width / 2) * app.stage.scale.x;
+	// map.y = app.renderer.height / 2 - (map.height / 2) * app.stage.scale.y;
 };
 
 const cameraSetup = (app: PIXI.Application, map: PIXI.Container) => {
@@ -68,8 +74,8 @@ const cameraSetup = (app: PIXI.Application, map: PIXI.Container) => {
 	});
 	addEventListener('pointermove', (event) => {
 		if (cameraMove) {
-			map.x += event.movementX / app.stage.scale.x;
-			map.y += event.movementY / app.stage.scale.x;
+			app.stage.x += event.movementX / app.stage.scale.x;
+			app.stage.y += event.movementY / app.stage.scale.x;
 		}
 	});
 };
@@ -118,10 +124,28 @@ const wfc = async (gridSize: [number, number], map: PIXI.Container) => {
 	// 3. Pick a random grid cell and collapse it first
 	collapseTile(Math.floor(Math.random() * gridSize[0]), Math.floor(Math.random() * gridSize[1]));
 	collapseStep();
-	map.interactive = true;
-	map.on('click', () => {
-		collapseStep();
-	});
+
+	if (!RENDER_IN_STEPS) {
+		renderFullMap();
+	}
+
+	function renderCell(cell: WfcHexTile) {
+		//
+		if (cell.tile) {
+			const sprite = PIXI.Sprite.from(cell.tile.path);
+			const point = cell.hex.toPoint();
+			sprite.x = point.x;
+			sprite.y = point.y - 12;
+			map.addChild(sprite);
+		}
+	}
+
+	function renderFullMap() {
+		//
+		for (const cell of wfcHexTiles) {
+			renderCell(cell);
+		}
+	}
 
 	function collapseTile(x: number, y: number) {
 		const cell = wfcHexGrid[x][y];
@@ -129,11 +153,9 @@ const wfc = async (gridSize: [number, number], map: PIXI.Container) => {
 		cell.tile = cell.options[Math.floor(Math.random() * cell.options.length)];
 		cell.options = [cell.tile];
 
-		const sprite = PIXI.Sprite.from(cell.tile.path);
-		const point = wfcHexGrid[x][y].hex.toPoint();
-		sprite.x = point.x;
-		sprite.y = point.y - 12;
-		map.addChild(sprite);
+		if (RENDER_IN_STEPS) {
+			renderCell(cell);
+		}
 
 		// 1.1 After collapsing a tile, recalculate neighbour options
 		const neighbours = hexGrid.neighborsOf(cell.hex);
@@ -181,7 +203,11 @@ const wfc = async (gridSize: [number, number], map: PIXI.Container) => {
 
 		for (let i = 0; i < wfcHexTiles.length; i++) {
 			if (!wfcHexTiles[i].collapsed) {
-				collapseTile(wfcHexTiles[i].hex.x, wfcHexTiles[i].hex.y);
+				try {
+					collapseTile(wfcHexTiles[i].hex.x, wfcHexTiles[i].hex.y);
+				} catch (e) {
+					console.log('err collapsing tile', wfcHexTiles[i]);
+				}
 				break;
 			}
 		}
@@ -191,8 +217,11 @@ const wfc = async (gridSize: [number, number], map: PIXI.Container) => {
 		});
 
 		if (uncollapsed) {
-			setTimeout(collapseStep, 3);
-			console.count('collapsing');
+			if (RENDER_IN_STEPS) {
+				setTimeout(collapseStep, STEP_TIME_MS);
+			} else {
+				collapseStep();
+			}
 		} else {
 			console.log('no more uncollapsed tiles');
 		}
