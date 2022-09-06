@@ -53,6 +53,15 @@
 			y: 239.02301144450504
 		}
 	];
+
+	function pickUntaggedTile() {
+		for (const tile of tileSet.tiles) {
+			if (!tile.sideTags) {
+				pickTile(tile);
+				break;
+			}
+		}
+	}
 	onMount(async () => {
 		tileSet = await fetchTileset();
 
@@ -193,15 +202,6 @@
 
 		pickUntaggedTile();
 
-		function pickUntaggedTile() {
-			for (const tile of tileSet.tiles) {
-				if (!tile.sideTags) {
-					pickTile(tile);
-					break;
-				}
-			}
-		}
-
 		canvas.addEventListener('mousemove', ({ offsetX, offsetY }) => {
 			if (pickingColor) {
 				const x = offsetX;
@@ -261,6 +261,10 @@
 		});
 	});
 
+	function selectTile(index: number) {
+		pickTile(tileSet.tiles[index]);
+	}
+
 	function addNewTileTag() {
 		tileSet.tags.push(newTag);
 		tileSet = tileSet;
@@ -272,6 +276,7 @@
 			method: 'POST',
 			body: JSON.stringify(tileSet)
 		});
+		tileSet = tileSet;
 	}
 </script>
 
@@ -318,9 +323,9 @@
 </div>
 <editor class="flex items-start gap-4">
 	<tiles>
-		{#each tileSet.tiles.reverse() as tile}
+		{#each tileSet.tiles as tile, i}
 			{#if !tile.sideTags}
-				<button on:click={pickTile(tile)}>
+				<button on:click={() => selectTile(i)}>
 					<img src={tile.path} />
 				</button>
 			{/if}
@@ -330,6 +335,13 @@
 		{#if pickingColor}<span class="absolute top-0 text-red-600 font-bold"
 				>picking new color for tile tag</span
 			>{/if}
+		<button
+			class="bg-slate-200 border mt-8"
+			on:click={async () => {
+				await saveTileSet();
+				pickUntaggedTile();
+			}}>Save</button
+		>
 		<canvas bind:this={canvas} width="800" height="800" />
 	</div>
 	<tiles>
